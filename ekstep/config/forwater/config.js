@@ -3,7 +3,7 @@ module.exports = {
     "root_dir": "/home/admin/forwater/",
     "BASE_URL": "http://localhost:9090",
     "cdn_url": "http://www.openrap.com",
-    "app_pages": "",
+    "app_pages": ".",
     "ecar_dir": "/home/admin/forwater/ecar_files",
     "meta_data_dir": "/home/admin/forwater/json_dir/",
     "content_dir": "/home/admin/forwater/xcontent/",

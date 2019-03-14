@@ -3,7 +3,7 @@ module.exports = {
     "root_dir": "/home/admin/diksha/",
     "BASE_URL": "http://localhost:9090",
     "cdn_url": "http://www.openrap.com",
-    "app_pages": "./Resource.json",
+    "app_pages": ".",
     "ecar_dir": "/home/admin/diksha/ecar_files",
     "meta_data_dir": "/home/admin/diksha/json_dir/",
     "content_dir": "/home/admin/diksha/xcontent/",
