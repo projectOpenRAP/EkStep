@@ -1,31 +1,31 @@
 module.exports = {
-    "plugin_name": "",
-    "root_dir": "",
-    "BASE_URL": "",
-    "cdn_url": "",
+    "plugin_name": "forwater",
+    "root_dir": "/home/admin/forwater/",
+    "BASE_URL": "http://localhost:9090",
+    "cdn_url": "http://www.openrap.com",
     "app_pages": "",
-    "ecar_dir": "",
-    "meta_data_dir": "",
-    "content_dir": "",
-    "content_url": "",
+    "ecar_dir": "/home/admin/forwater/ecar_files",
+    "meta_data_dir": "/home/admin/forwater/json_dir/",
+    "content_dir": "/home/admin/forwater/xcontent/",
+    "content_url": "http://www.openrap.com/ecar_files/",
     "bleve_search": {
-        "db_name": "",
+        "db_name": "fw.db",
         "db_dir": ""
     },
     "syncthing": {
-        "sync_dir": "",
-        "marker_file": "",
+        "sync_dir": "/home/admin/forwater/",
+        "marker_file": ".stfolder",
         "xml_config": {
-            "src_dir": "",
-            "dest_dir": ""
+            "src_dir": "./syncthing/",
+            "dest_dir": "/root/.config/syncthing/"
         }
     },
     "telemetry": {
-        "src_dir": "",
-        "log_file": "",
+        "src_dir": "/home/admin/forwater/telemetry/",
+        "log_file": "/tmp/telemetry_upload.log",
         "sync_api": {
             "url": "",
-            "token": ""
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI0NTAyNmQ0M2RhMWM0Yzc1OWMwNTNkZDA3OWJlMDkwMSJ9.bQ2Gie8C9eO7E-pcB0iICmf5uww2IuM8YgqR8ohZfTg"
         },
         "app_register_api": {
             "url": "",
