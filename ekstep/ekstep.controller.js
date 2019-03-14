@@ -495,7 +495,7 @@ let getHomePage = (req, res) => {
     let section = [];
     let sectionResponse = {};
     let sectionNames = [];
-    loadSkeletonJson(reqConfig)
+    loadSkeletonJson(`${config.app_pages}/${reqConfig}`)
         .then(value => {
             loadedJson = value.data;
             let deviceId = parsedReq.id;
@@ -536,7 +536,7 @@ let getHomePage = (req, res) => {
         return responses;	
 	}).then(value => {
         sectionResponse = value
-		return loadSkeletonJson(reqConfig + 'HomePage')	
+		return loadSkeletonJson(`${config.app_pages}/${reqConfig}HomePage`)	
 	}).then(value => {
 	    responseStructure = value.data;
 		for(let i in sectionResponse) {	
