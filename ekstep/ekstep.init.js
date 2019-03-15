@@ -14,10 +14,10 @@ let {
     exec
 } = require('child_process');
 let {
-    initializeEsDB
-} = require('./ekstep.db_restart.js');
-let {
-    addDocument
+    init,
+    createAndInitIndex,
+    deleteIndex,
+    getAllIndices
 } = require('../../../searchsdk/index.js');
 let {
     startUploadngTelemetry
@@ -53,42 +53,29 @@ let processEcarFiles = (filePath) => {
 /*
     Adds the JSON files to BleveSearch Database
 */
-let jsonDocsToDb = (dir) => {
-    let defer = q.defer();
-    
+let indexMetaDataIntoBleveDb = () => {
     /*
         Updated behavior: Carpet bomb the index and rebuild from scratch
     */
-    initializeEsDB().then(value => {
-        console.log("Index successfully recreated");
-        let promises = [];
-        fs.readdir(dir, (err, files) => {
-            if (err) {
-                return defer.reject(err);
-            } else {
-                for (let i = 0; i < files.length; i++) {
-                    if (files[i].lastIndexOf('.json') + '.json'.length === files[i].length) {
-                        promises.push(addDocument({
-                            indexName: config.bleve_search.db_name,
-                            documentPath: dir + files[i]
-                        }))
-                    }
-                }
-                q.allSettled(promises).then(values => {
-                    values.forEach(value => {
-                        if (typeof value.value.err !== 'undefined') {
-                            console.log("Error encountered!")
-                            return defer.reject(value.value.err);
-                        }
-                    });
-                    return defer.resolve(values[0].value.success);
-                });
-            }
-        });
-    }).catch(e => {
-        defer.reject(e);
-    });
-    return defer.promise;
+   return init()
+   .then(res => {
+       return getAllIndices();
+   })
+   .then(res => {
+       let availableIndices = JSON.parse(res.body).indexes;
+
+       if (availableIndices.indexOf(config.bleve_search.db_name) === -1) {
+           return { message : `Creating ${config.plugin_name} index now.` };
+       } else {
+           return deleteIndex({ indexName : config.bleve_search.db_name });
+       }
+   })
+   .then(res => {
+       res.message && console.log(res.message);
+       let jsonDir = config.meta_data_dir;
+       return createAndInitIndex({ indexName : config.bleve_search.db_name, jsonDir : jsonDir});
+   });
+    
 }
 
 let initializeEkStepPlugin = () => {
@@ -117,11 +104,11 @@ let initializeEkStepPlugin = () => {
             console.log("Created " + config.content_dir);
             return processEcarFiles(config.root_dir);
         }).then(value => {
-            return jsonDocsToDb(config.meta_data_dir);
+            return indexMetaDataIntoBleveDb();
         }, reason => {
             console.log(reason);
             console.log("There seem to be corrupt ecar files in the directory.");
-            return jsonDocsToDb(config.meta_data_dir);
+            return indexMetaDataIntoBleveDb();
         }).then(value => {
             console.log("Initialized API Server");
         }).catch(e => {
