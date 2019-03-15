@@ -464,24 +464,17 @@ let getHomePage = (req, res) => {
     /*
         request body structure :
         {
-            id : 'string',
-            ets : number,
-            request : {
-                context : {
-                    contentid : 'string',
-                    did :  'string',
-                    dlang : 'string',
-                    uid :  'string',
+            request: { 
+                filters: { 
+                    board: [Array],
+                    compatibilityLevel: [Object],
+                    gradeLevel: [Array],
+                    medium: [Array] 
                 },
-                filters : {
-                    {
-                        param : value,
-                    }
-                }
+                mode: 'string',
+                name: 'string',
+                source: 'string' 
             }
-            ver : "string"
-
-            Use search, extract ID from it and get deets from it
         }
     */
     let defer = q.defer();
