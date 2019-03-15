@@ -1,6 +1,3 @@
-let multiparty = require('connect-multiparty');
-let multipartMiddle = multiparty();
-let fs = require('fs');
 let q = require('q');
 let {
     createFolderIfNotExists,
@@ -10,9 +7,6 @@ let {
     readdir,
     deleteDir
 } = require('../../../filesdk');
-let {
-    exec
-} = require('child_process');
 let {
     init,
     createAndInitIndex,

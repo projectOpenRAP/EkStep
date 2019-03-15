@@ -1,6 +1,4 @@
 let q = require('q');
-let FormData = require('form-data');
-let pluginProfile = require('./profile.json');
 let {
     extractZip,
     deleteDir,
@@ -8,16 +6,6 @@ let {
     getInfo
 } = require('../../../filesdk');
 let fs = require('fs');
-var zlib =
-    require('zlib');
-let {
-    BASE_URL,
-    HOME_EXT,
-    SEARCH_EXT,
-    ID_MIDDLE,
-    TELEMETRY_EXT,
-    ECAR_MIDDLE
-} = require('./config.js');
 let {
     init,
     createIndex,
@@ -161,60 +149,53 @@ let cleanKeys = (fieldList) => {
     ]
 
     let newFieldList = {};
-    loadSkeletonJson('profile')
-        .then(value => {
-            try {
-                let currentProfile = value.data.active_profile;
-                let cdnUrl = config.cdn_url;
-                // console.log("CDN url is " + cdnUrl);
-                for (let key in fieldList) {
-                    if (fieldList[key] === null) {
-                        continue;
-                    }
-                    if (typeof fieldList[key] === 'object') {
-                        fieldList[key] = fieldList[key][0];
-                    }
-                    let newKey = key.slice(key.lastIndexOf(".") + 1);
-                    if (keysWIthListValues.indexOf(newKey) !== -1 && typeof fieldList[key] !== 'object') {
-                        newFieldList[newKey] = [fieldList[key]];
-                    } else if (keysPointingToUrls.indexOf(newKey) !== -1) {
-                        let value = fieldList[key];
-                        let newValue = value;
-                        if (value === null || value.search('https://www.youtube.com') !== -1) {
-                            newValue = value;
-                        } else if (value.search(/^http(s?):\/\/(((\w|\d)+)\.)+(\w|\d)+/) !== -1) {
-                            newValue = value.replace(/^http(s?):\/\/(((\w|\d)+)\.)+(\w|\d)+/, cdnUrl);
-                        } else if (newKey === 'posterImage' || newKey === 'appIcon' || newKey === 'artifactUrl' || newKey === 'downloadUrl') {
-                            newValue = cdnUrl + '/xcontent/' + value;
-                        } else {
-                            newValue = cdnUrl + '/' + value;
-                        }
-                        newFieldList[newKey] = newValue;
-                    } else {
-                        newFieldList[newKey] = fieldList[key];
-                    }
-                }
-                contentType = plurals[newFieldList.contentType];
-                // Add objType to fields
-                let objType = newFieldList.objectType;
-                newFieldList = {
-                    ...newFieldList,
-                    objType
-                };
-                return defer.resolve({
-                    fields: newFieldList,
-                    contentType
-                });
-            } catch (e) {
-                console.log("Corrupt JSON file!");
-                throw e;
+
+    try {
+        let cdnUrl = config.cdn_url;
+        for (let key in fieldList) {
+            if (fieldList[key] === null) {
+                continue;
             }
-        }).catch(err => {
-            console.log("JSON errors caught?");
-            return defer.reject({
-                err
-            });
-        })
+            if (typeof fieldList[key] === 'object') {
+                fieldList[key] = fieldList[key][0];
+            }
+            let newKey = key.slice(key.lastIndexOf(".") + 1);
+            if (keysWIthListValues.indexOf(newKey) !== -1 && typeof fieldList[key] !== 'object') {
+                newFieldList[newKey] = [fieldList[key]];
+            } else if (keysPointingToUrls.indexOf(newKey) !== -1) {
+                let value = fieldList[key];
+                let newValue = value;
+                if (value === null || value.search('https://www.youtube.com') !== -1) {
+                    newValue = value;
+                } else if (value.search(/^http(s?):\/\/(((\w|\d)+)\.)+(\w|\d)+/) !== -1) {
+                    newValue = value.replace(/^http(s?):\/\/(((\w|\d)+)\.)+(\w|\d)+/, cdnUrl);
+                } else if (newKey === 'posterImage' || newKey === 'appIcon' || newKey === 'artifactUrl' || newKey === 'downloadUrl') {
+                    newValue = cdnUrl + '/xcontent/' + value;
+                } else {
+                    newValue = cdnUrl + '/' + value;
+                }
+                newFieldList[newKey] = newValue;
+            } else {
+                newFieldList[newKey] = fieldList[key];
+            }
+        }
+        contentType = plurals[newFieldList.contentType];
+        // Add objType to fields
+        let objType = newFieldList.objectType;
+        newFieldList = {
+            ...newFieldList,
+            objType
+        };
+        defer.resolve({ 
+            fields: newFieldList,
+            contentType
+        });
+    }
+    catch (err) {
+        console.log("Corrupt JSON file!");
+        defer.reject({ err });
+    }
+
     return defer.promise;
 }
 
@@ -225,18 +206,12 @@ let parseResults = (values) => {
     let defer = q.defer();
     let fields = values.map(value => (JSON.parse(value.value.body).fields));
 
-//    console.log("Parsing");
-//    console.log("-----------");
-//    console.log(fields);
-
     let fieldPromises = [];
     console.log(fields.length);
     for (let i = 0; i < fields.length; i++) {
-        //console.log(fields[i]);
         fieldPromises.push(cleanKeys(fields[i]));
     }
     q.allSettled(fieldPromises).then(values => {
-        //console.log(values.map(value => value.value)); //HERE
         return defer.resolve({
             responses: values.map(value => value.value)
         });
@@ -402,7 +377,6 @@ let generateResponseStructure = (rSt) => {
 }
 
 let doSectionwiseSearch = (sectionObject) => {
-	    let searchpromise;
 	    let queryObject = {
 	      
 		   "conjuncts" : [] 
@@ -487,8 +461,6 @@ let getHomePage = (req, res) => {
     let defer = q.defer();
     let parsedReq = req.body;
     let reqConfig = parsedReq.request.name; 
-    log('getHomePage', parsedReq, req.path);
-    //console.log(JSON.stringify(parsedReq, null, 4));
     let loadedJson = {};
     let responseStructure = {};
     let query = [];
@@ -553,12 +525,6 @@ let getHomePage = (req, res) => {
         responseStructure.params.resmsgid = uuidv4();
         responseStructure.params.msgid = uuidv4();
 
-           // console.log(JSON.stringify(responseStructure, null, 4));
-           // fs.writeFile("/home/admin/api.debug", JSON.stringify(responseStructure), (err, res) => console.log('Written debug info to api.debug'));
-
-            //let daata = fs.readFileSync("/home/admin/api_working.debug", 'utf-8');
-            //return res.status(200).json(JSON.parse(daata));
-            
         return res.status(200).json(responseStructure);
         }).catch(e => {
             console.log(e);
@@ -609,9 +575,6 @@ let performSearch = (req, res) => {
 
     */
     let request = req.body.request;
-
-    //    log('performSearch', request, req.path);
-
     let facets = request.facets;
     let responseStructure = {};
     let secondaryQuery = request.filters.identifier || request.filters.contentType;
@@ -631,12 +594,6 @@ let performSearch = (req, res) => {
         responseStructure.result.count = value.results.length;
         responseStructure.result.content = value.results;
         responseStructure.result.facets = value.facets;
-        //console.log('performSearch resposne \n', JSON.stringify(responseStructure, null, 4));
-        //console.log('\n/performSearch response');
-        fs.writeFile("/home/admin/api_search.debug", JSON.stringify(responseStructure), (err, res) => console.log({
-            err,
-            res
-        }));
         return res.status(200).json(responseStructure);
     }).catch(e => {
         console.log(e);
@@ -665,13 +622,7 @@ let getEcarById = (req, res) => {
 }
 
 let telemetryData = (req, res) => {
-    //console.log(req.files);
     let body = JSON.stringify(req.body);
-    log('telemetryData', body, req.path);
-    console.log(req.headers);
-    //return res.status(200).json({success: true});
-    //let fileData = req.files;
-    //let oldPath = fileData.file.path;
     let telemetryDir = config.telemetry.src_dir;
     let now = new Date().getTime();
     baseInt++;
@@ -689,24 +640,6 @@ let telemetryData = (req, res) => {
                 responseStructure.ts = new Date();
             return res.status(200).json(responseStructure);
             })
-            /*
-            zlib.createGzip(new Buffer(body, 'utf-8'), (err, data) => {
-                if (err) {
-                    console.log("ERR");
-                    console.log(err);
-                } else {
-                    fs.writeFile(telemetryDir + newFileName, data, (err) => {
-                        responseStructure.ts = new Date();
-                        if (err) {
-                            responseStructure.status = "error";
-                            responseStructure.errmsg = err;
-                            return res.status(500).json(responseStructure);
-                        } else {
-                            return res.status(200).json(responseStructure);
-                        }
-                    });
-                }
-            });*/
         }).catch(e => {
             responseStructure.status = "error";
             responseStructure.errmsg = e;
@@ -745,7 +678,6 @@ let moveFileWithPromise = (source, destination) => {
 /*
     Creates a folder if it does not exist. Essentially an internal handler
 */
-
 let createFolderIfNotExists = (folderName) => {
     let defer = q.defer();
     fs.stat(folderName, (err, stats) => {
@@ -959,7 +891,6 @@ let deleteEcarData = (dir, file) => {
 /*
     Post extraction methods, called if extraction is successful and data needs to be post-processed.
 */
-
 let moveInternalFolders = (dir, fileNameAsFolder) => {
     let defer = q.defer();
     const parent = dir + fileNameAsFolder;
@@ -1012,12 +943,12 @@ let getEcarName = (id, ver) => `${id}_0.0.ecar`;
 let doPostExtraction = (dir, file) => {
     let defer = q.defer();
     let fileNameAsFolder = file.slice(0, -5) + '/';
+    
     /*
       1. Transfer the ecar file to ecar_files Directory
       2. Rename manifest.json to name of ecar file and sent to json_files
       3. Transfer the do_whatever folder to xcontent
     */
-
     let manifestData = undefined;
     const manifestFile = dir + fileNameAsFolder + 'manifest.json';
 
@@ -1092,7 +1023,6 @@ let performExtraction = (parentDir, fileName, folderName) => {
             console.log("Completed extraction, 842");
             return defer.resolve(value);
         }, reason => {
-            //console.log(reason);
             return defer.reject({
                 err: 'Cannot extract this file'
             });
@@ -1172,6 +1102,3 @@ module.exports = {
     performRecommendation,
     createFolderIfNotExists
 }
-
-
-

@@ -8,25 +8,13 @@ let request = require('request');
 let fs = require('fs');
 let dns = require('dns');
 let cron = require('node-cron');
-let appJwt = '';
-let zlib = require('zlib');
 
-let JWT_ALGORITHM = 'HS256';
-let logFile = '/tmp/telemetry_upload.log';
-let deviceKey = deviceSecret = tmJwt = "";
-
-let logOptimizationLimit = 25;
-let logCurrentValue = 0;
-
-let { generateOriginalJWTs } = require('./ekstep.helper.js')
-
-let telemetryTimerInterval = 300;
-let telemetryTokenGenerateTimerInterval = 300;
-let currentTokenStatus = 0 //Invalid Token
-
-let logger = logfd = null;
-
+let { generateOriginalJWTs } = require('./ekstep.helper.js');
 let config = require('./config');
+
+let tmJwt = "";
+let currentTokenStatus = 0;
+let logger = null;
 
 let randomAlphabet = () => {
     return (String.fromCharCode(parseInt(Math.random() * 94) + 33));
@@ -161,7 +149,6 @@ let generateToken = () => {
     }
     let deviceKey = random(16);
     console.log("Generated random " + deviceKey);
-    let statusCode = 0;
     requestTokenGeneration().then(value => {
         return defer.resolve();
     }).catch(e => {
