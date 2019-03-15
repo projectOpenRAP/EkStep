@@ -30,20 +30,20 @@ let random = (x) => {
 
 let loggingInit = () => {
     let defer = q.defer();
-    logger = new(winston.Logger)({
+    logger = new (winston.Logger)({
         transports: [
-            new(winston.transports.Console)(),
-            new(winston.transports.File)({
+            new (winston.transports.Console)(),
+            new (winston.transports.File)({
                 name: 'info',
                 filename: config.telemetry.log_file,
                 level: 'info'
             }),
-            new(winston.transports.File)({
+            new (winston.transports.File)({
                 name: 'debug',
                 filename: config.telemetry.log_file,
                 level: 'debug'
             }),
-            new(winston.transports.File)({
+            new (winston.transports.File)({
                 name: 'error',
                 filename: config.telemetry.log_file,
                 leevel: 'error'
@@ -118,7 +118,6 @@ let checkConnectivity = () => {
 
 let requestTokenGeneration = () => {
     let defer = q.defer();
-    console.log("Bongiorno")
     if (tmJwt.length < 1) {
         generateOriginalJWTs().then(value => {
             console.log("We have obtained " + value.token);
@@ -132,7 +131,7 @@ let requestTokenGeneration = () => {
             return defer.reject();
         });
     } else {
-        console.log("Reusing key")
+        console.log("Reusing key");
         uploadTelemetryDirectory();
         defer.resolve();
     }
@@ -163,8 +162,8 @@ let uploadTelemetryFile = (fileName, jwt, endpoint = config.telemetry.sync_api.u
     let authText = "bearer " + jwt;
     let headers = {
         'Content-Type': 'application/json',
-    //    'Content-Encoding': 'gzip',
-    //    'Accept-Encoding': 'gzip',
+        //    'Content-Encoding': 'gzip',
+        //    'Accept-Encoding': 'gzip',
         'Authorization': authText
     };
     console.log("Let's upload")
@@ -181,8 +180,8 @@ let uploadTelemetryFile = (fileName, jwt, endpoint = config.telemetry.sync_api.u
             }
             console.log("Options are:", options)
             request(options, (err, res, body2) => {
-                console.log("Upload attempt over")
-                console.log(body2)
+                console.log("Upload attempt over");
+                console.log(body2);
                 let body = null;
                 if (err) {
                     return defer.reject({
@@ -192,9 +191,8 @@ let uploadTelemetryFile = (fileName, jwt, endpoint = config.telemetry.sync_api.u
                 if (typeof body2 === 'undefined') {
                     return defer.reject({
                         err: res
-                    })
+                    });
                 }
-                // Here lies my soul
                 if (typeof body2.params !== 'undefined') {
                     body = body2;
                 } else {
@@ -233,33 +231,36 @@ let getListOfTimes = (dir, files) => {
     for (let i = 0; i < files.length; i++) {
         fileTuplePromises.push(getTime(dir + files[i]));
     }
-    q.allSettled(fileTuplePromises).then(values => {
-        for (let i = 0; i < values.length; i++) {
-            if (values[i].state == "fulfilled") {
-                fileTuples.push([dir + files[i], values[i].value.mtimeMs]);
+    q.allSettled(fileTuplePromises)
+        .then(values => {
+            for (let i = 0; i < values.length; i++) {
+                if (values[i].state == "fulfilled") {
+                    fileTuples.push([dir + files[i], values[i].value.mtimeMs]);
+                }
             }
-        }
-        return defer.resolve(fileTuples);
-    }).catch(e => {
-        console.log(e);
-        return defer.reject(e);
-    });
+            return defer.resolve(fileTuples);
+        })
+        .catch(e => {
+            console.log(e);
+            return defer.reject(e);
+        });
     return defer.promise;
 }
 
 let sortFilesByDate = (dir, files) => {
     let defer = q.defer();
-    getListOfTimes(dir, files).then(value => {
-        let fileTuples = value;
-        fileTuples.sort((a, b) => {
-            return a[1] - b[1];
+    getListOfTimes(dir, files)
+        .then(value => {
+            let fileTuples = value;
+            fileTuples.sort((a, b) => {
+                return a[1] - b[1];
+            });
+            let returnable = [];
+            for (let i = 0; i < fileTuples.length; i++) {
+                returnable.push(fileTuples[i][0]);
+            }
+            return defer.resolve(returnable);
         });
-        let returnable = [];
-        for (let i = 0; i < fileTuples.length; i++) {
-            returnable.push(fileTuples[i][0]);
-        }
-        return defer.resolve(returnable);
-    });
     return defer.promise;
 
 }
@@ -267,35 +268,37 @@ let sortFilesByDate = (dir, files) => {
 let uploadTelemetryFileWrapper = (file) => {
     let defer = q.defer();
     console.log("Gonna upload", file)
-    uploadTelemetryFile(file, tmJwt, config.telemetry.sync_api.url).then(value => {
-        console.log("Uploading returned ", value);
-        if (value.responseCode === 'SUCCESS' || value.err === 'INVALID_DATA_ERROR') {
-            logger.log("info", "Telemetry upload(" + file + ") status : " + value.status + ' err: ' + value.errMsg);
-            fs.unlink(file, (err) => {
-                if (err) {
-                    logger.log("info", "Couldn't delete telemetry " + file + " after upload");
-                } else {
-                    logger.log("info", "Successfully deleted telemety " + file + " after upload");
-                }
-            });
-        } else if (value.statusCode == 401) {
-            logger.log("info", "Telemetry upload(" + fileName + ") status : " + value.status + ' err: ' + value.errMsg);
-            logger.log("info", "Unauthorized: Regenerating Token...");
-            generateToken();
-            return defer.resolve();
-        } else if (value.statusCode == 429) {
-            logger.log("info", "Telemetry upload(" + fileName + ") status : " + value.status + ' err: ' + value.errMsg);
-            logger.log("info", "Ratelimit: API rate limit exceeded...");
-            return defer.reject("313");
-        } else {
-            console.log("Whatever comes below")
-            console.log(value);
-            return defer.reject("316");
-        }
-    }).catch(reason => {
-        console.log("Some failure due to ", reason);
-        return defer.reject({err: reason});
-    });
+    uploadTelemetryFile(file, tmJwt, config.telemetry.sync_api.url)
+        .then(value => {
+            console.log("Uploading returned ", value);
+            if (value.responseCode === 'SUCCESS' || value.err === 'INVALID_DATA_ERROR') {
+                logger.log("info", "Telemetry upload(" + file + ") status : " + value.status + ' err: ' + value.errMsg);
+                fs.unlink(file, (err) => {
+                    if (err) {
+                        logger.log("info", "Couldn't delete telemetry " + file + " after upload");
+                    } else {
+                        logger.log("info", "Successfully deleted telemety " + file + " after upload");
+                    }
+                });
+            } else if (value.statusCode == 401) {
+                logger.log("info", "Telemetry upload(" + fileName + ") status : " + value.status + ' err: ' + value.errMsg);
+                logger.log("info", "Unauthorized: Regenerating Token...");
+                generateToken();
+                return defer.resolve();
+            } else if (value.statusCode == 429) {
+                logger.log("info", "Telemetry upload(" + fileName + ") status : " + value.status + ' err: ' + value.errMsg);
+                logger.log("info", "Ratelimit: API rate limit exceeded...");
+                return defer.reject("313");
+            } else {
+                console.log("Whatever comes below")
+                console.log(value);
+                return defer.reject("316");
+            }
+        })
+        .catch(reason => {
+            console.log("Some failure due to ", reason);
+            return defer.reject({ err: reason });
+        });
     return defer.promise;
 }
 
@@ -311,37 +314,41 @@ let uploadTelemetryDirectory = () => {
             logger.log("error", "No files to upload")
             return defer.reject();
         } else {
-            checkConnectivity().then(value => {
-                logger.log("info", "Internet connected!");
-                let rateLimit = 1000;
-                console.log("Sorting time");
-                sortFilesByDate(telDir, files).then(value => {
-                    console.log("number of files:", value.length)
-                    sortedFileList = value;
-                    telemetryUploadPromises = [];
-                    for (let i = 0; i < sortedFileList.length; i++) {
-                        file = sortedFileList[i];
-                        console.log("Uploading time")
-                        telemetryUploadPromises.push(uploadTelemetryFileWrapper(file));
-                    }
-                    q.allSettled(telemetryUploadPromises).then(values => {
-                        for (let i = 0; i < values.length; i++) {
-                            if (values[i].state !== 'fulfilled') {
-                                console.log(values[i]);
-                                console.log("OMG FAIL")
-                                return defer.reject();
+            checkConnectivity()
+                .then(value => {
+                    logger.log("info", "Internet connected!");
+                    let rateLimit = 1000;
+                    console.log("Sorting time");
+                    sortFilesByDate(telDir, files)
+                        .then(value => {
+                            console.log("number of files:", value.length)
+                            sortedFileList = value;
+                            telemetryUploadPromises = [];
+                            for (let i = 0; i < sortedFileList.length; i++) {
+                                file = sortedFileList[i];
+                                console.log("Uploading time")
+                                telemetryUploadPromises.push(uploadTelemetryFileWrapper(file));
                             }
-                        }
-                        console.log("OMG PASS")
-                        return defer.resolve();
-                    });
-                }).catch(err => {
-                    logger.log("error", err);
-                    return defer.reject({
-                        err
-                    });
+                            q.allSettled(telemetryUploadPromises)
+                                .then(values => {
+                                    for (let i = 0; i < values.length; i++) {
+                                        if (values[i].state !== 'fulfilled') {
+                                            console.log(values[i]);
+                                            console.log("OMG FAIL")
+                                            return defer.reject();
+                                        }
+                                    }
+                                    console.log("OMG PASS")
+                                    return defer.resolve();
+                                });
+                        })
+                        .catch(err => {
+                            logger.log("error", err);
+                            return defer.reject({
+                                err
+                            });
+                        });
                 });
-            });
         }
     });
     return defer.promise;
@@ -349,17 +356,20 @@ let uploadTelemetryDirectory = () => {
 
 
 let startUploadngTelemetry = () => {
-    console.log("ekstep telemetry shall now be uploaded.");
+    console.log(`${config.plugin_name} telemetry shall now be uploaded.`);
     cron.schedule("*/1 * * * *", () => {
-        loggingInit().then(value => {
-            return generateToken();
-        }).then(value => {
-            console.log("Success");
-        }).catch(e => {
-            console.log("Error");
-            console.log(e);
-            console.log("Finished with errors");
-        });
+        loggingInit()
+            .then(value => {
+                return generateToken();
+            })
+            .then(value => {
+                console.log("Success");
+            })
+            .catch(e => {
+                console.log("Error");
+                console.log(e);
+                console.log("Finished with errors");
+            });
     });
 }
 

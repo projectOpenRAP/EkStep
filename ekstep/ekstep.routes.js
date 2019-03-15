@@ -10,7 +10,7 @@ let {
 
 module.exports = app => {
     /*
-        ekstep API endpoints
+        App endpoints
     */
     app.post('/api/data/v1/page/assemble', getHomePage);
     app.get('/api/content/v1/read/:contentID', getEcarById);

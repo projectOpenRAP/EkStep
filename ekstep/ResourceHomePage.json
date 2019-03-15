@@ -14,7 +14,8 @@
             "id": "org.ekstep.genie.content.home",
             "banners": null,
             "name": null,
-            "sections": [{
+            "sections": [
+                {
                     "display": {
                         "name": {
                             "en": "Featured Content"
@@ -24,16 +25,21 @@
                         "request": {
                             "filters": {
                                 "objectType": "Content",
-                                "contentType": ["Resource"],
-                                "status": ["Live"]
+                                "contentType": [
+                                    "Resource"
+                                ],
+                                "status": [
+                                    "Live"
+                                ]
                             },
                             "sort_by": {
                                 "me_averageRating": "desc"
                             },
                             "limit": 10,
-                            "exists": ["badgeAssertions"]
+                            "exists": [
+                                "badgeAssertions"
+                            ]
                         }
-                        
                     },
                     "recommend": null,
                     "contents": [],
@@ -50,9 +56,15 @@
                     "searchQuery": {
                         "request": {
                             "filters": {
-                                "contentType": ["TextBook"],
-                                "status": ["Live"],
-                                "objectType": ["Content"]
+                                "contentType": [
+                                    "TextBook"
+                                ],
+                                "status": [
+                                    "Live"
+                                ],
+                                "objectType": [
+                                    "Content"
+                                ]
                             },
                             "sort_by": {
                                 "me_averageRating": "desc"
@@ -76,10 +88,18 @@
                         "request": {
                             "query": "",
                             "filters": {
-                                "contentType": ["Resource"],
-                                "resourceType": ["learn"],
-                                "status": ["Live"],
-                                "objectType": ["Content"]
+                                "contentType": [
+                                    "Resource"
+                                ],
+                                "resourceType": [
+                                    "learn"
+                                ],
+                                "status": [
+                                    "Live"
+                                ],
+                                "objectType": [
+                                    "Content"
+                                ]
                             },
                             "sort_by": {
                                 "me_averageRating": "desc"
@@ -99,15 +119,23 @@
                             "en": "Practice and Test Material"
                         }
                     },
-    
                     "searchQuery": {
                         "request": {
                             "query": "",
                             "filters": {
-                                "contentType": ["Resource"],
-                                "resourceType": ["practice", "test"],
-                                "status": ["Live"],
-                                "objectType": ["Content"]
+                                "contentType": [
+                                    "Resource"
+                                ],
+                                "resourceType": [
+                                    "practice",
+                                    "test"
+                                ],
+                                "status": [
+                                    "Live"
+                                ],
+                                "objectType": [
+                                    "Content"
+                                ]
                             },
                             "sort_by": {
                                 "me_averageRating": "desc"
