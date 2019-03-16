@@ -24,7 +24,7 @@ module.exports = {
         "src_dir": "/home/admin/forwater/telemetry/",
         "log_file": "/tmp/telemetry_upload.log",
         "sync_api": {
-            "url": "",
+            "url": "https://knowledge.forwater.in/api/data/v1/telemetry",
             "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI0NTAyNmQ0M2RhMWM0Yzc1OWMwNTNkZDA3OWJlMDkwMSJ9.bQ2Gie8C9eO7E-pcB0iICmf5uww2IuM8YgqR8ohZfTg"
         },
         "app_register_api": {
