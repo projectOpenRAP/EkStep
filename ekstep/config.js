@@ -1,3 +1,7 @@
+/*
+    This is a template. Replace it with your configurations.
+*/
+
 module.exports = {
     "plugin_name": "",
     "root_dir": "",
