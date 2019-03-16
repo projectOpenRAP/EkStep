@@ -97,19 +97,16 @@ let generateJwt = (key, secret) => {
 
 let checkConnectivity = () => {
     let defer = q.defer();
-    //TODO: Import the connectivity checking code from telemetry SDK
-    dns.resolve('www.google.com', (err) => {
-        if (err) {
-            dns.resolve('aws.amazon.com', (err) => {
-                if (err) {
-                    defer.reject({
-                        err
-                    });
-                } else {
-                    defer.resolve();
-                }
+
+    const cmd = path.join(__dirname, '../../../CDN/netconnect_status.sh');
+
+    exec(cmd, { shell: '/bin/bash' }, (err) => {
+
+    	if(err) {
+            defer.reject({
+                err
             });
-        } else {
+    	}  else {
             defer.resolve();
         }
     });
