@@ -8,12 +8,13 @@ let request = require('request');
 let fs = require('fs');
 let dns = require('dns');
 let cron = require('node-cron');
+let path = require('path');
 
 let { generateOriginalJWTs } = require('./ekstep.helper.js');
 let config = require('./config');
 
-let tmJwt = "";
-let currentTokenStatus = 0;
+let tmJwt = config.telemetry.sync_api.token;
+let currentTokenStatus = 1;
 let logger = null;
 
 let randomAlphabet = () => {
@@ -101,12 +102,11 @@ let checkConnectivity = () => {
     const cmd = path.join(__dirname, '../../../CDN/netconnect_status.sh');
 
     exec(cmd, { shell: '/bin/bash' }, (err) => {
-
-    	if(err) {
+        if (err) {
             defer.reject({
                 err
             });
-    	}  else {
+        } else {
             defer.resolve();
         }
     });
@@ -116,17 +116,20 @@ let checkConnectivity = () => {
 let requestTokenGeneration = () => {
     let defer = q.defer();
     if (tmJwt.length < 1) {
-        generateOriginalJWTs().then(value => {
-            console.log("We have obtained " + value.token);
-            tmJwt = value.token;
-            currentTokenStatus = 1;
-            return uploadTelemetryDirectory();
-        }).then(value => {
-            return defer.resolve();
-        }).catch(e => {
-            console.log("Error: " + e.err);
-            return defer.reject();
-        });
+        generateOriginalJWTs()
+            .then(value => {
+                console.log("We have obtained " + value.token);
+                tmJwt = value.token;
+                currentTokenStatus = 1;
+                return uploadTelemetryDirectory();
+            })
+            .then(value => {
+                return defer.resolve();
+            })
+            .catch(e => {
+                console.log("Error: " + e.err);
+                return defer.reject();
+            });
     } else {
         console.log("Reusing key");
         uploadTelemetryDirectory();
@@ -145,11 +148,13 @@ let generateToken = () => {
     }
     let deviceKey = random(16);
     console.log("Generated random " + deviceKey);
-    requestTokenGeneration().then(value => {
-        return defer.resolve();
-    }).catch(e => {
-        return defer.reject(e);
-    });
+    requestTokenGeneration()
+        .then(value => {
+            return defer.resolve();
+        })
+        .catch(e => {
+            return defer.reject(e);
+        });
     return defer.promise;
 }
 
@@ -280,6 +285,7 @@ let uploadTelemetryFileWrapper = (file) => {
             } else if (value.statusCode == 401) {
                 logger.log("info", "Telemetry upload(" + fileName + ") status : " + value.status + ' err: ' + value.errMsg);
                 logger.log("info", "Unauthorized: Regenerating Token...");
+                tmJwt = "";
                 generateToken();
                 return defer.resolve();
             } else if (value.statusCode == 429) {
