@@ -1,6 +1,4 @@
 let q = require('q');
-let FormData = require('form-data');
-let pluginProfile = require('./profile.json');
 let {
     extractZip,
     deleteDir,
@@ -8,16 +6,6 @@ let {
     getInfo
 } = require('../../../filesdk');
 let fs = require('fs');
-var zlib =
-    require('zlib');
-let {
-    BASE_URL,
-    HOME_EXT,
-    SEARCH_EXT,
-    ID_MIDDLE,
-    TELEMETRY_EXT,
-    ECAR_MIDDLE
-} = require('./config.js');
 let {
     init,
     createIndex,
@@ -31,7 +19,7 @@ let {
     advancedSearch
 } = require('../../../searchsdk/index.js');
 let {
-	insertFields
+    insertFields
 } = require('../../../dbsdk');
 let baseInt = 0;
 const defaultDbName = 'device_mgmt';
@@ -41,17 +29,16 @@ const uuidv4 = require('uuid/v4');
 let config = require('./config.js');
 
 let addEcarToDb = (id, type, size, parentId) => {
+    let values = [id, type, size, parentId];
+    values.filter(item => item !== undefined && item !== null);
 
-  let values  = [id, type, size, parentId];
-  values.filter(item => item !== undefined && item !== null);
-
-  let queryObject = {
-    dbName : defaultDbName,
-    tableName : defaultTableName,
-    columns : ['id', 'type', 'size', 'parent_id'],
-    values
-  }
-  return insertFields(queryObject);
+    let queryObject = {
+        dbName: defaultDbName,
+        tableName: defaultTableName,
+        columns: ['id', 'type', 'size', 'parent_id'],
+        values
+    }
+    return insertFields(queryObject);
 }
 
 /*
@@ -89,7 +76,7 @@ let cleanKeys = (fieldList) => {
         Template: "Templates",
         Resource: "Resources",
         TextBook: "Textbooks",
-    }
+    };
 
     let remainingAllowedKeys = [
         "appIcon",
@@ -158,63 +145,56 @@ let cleanKeys = (fieldList) => {
         'dialcodes',
         'screenshots',
         'pragma'
-    ]
+    ];
 
     let newFieldList = {};
-    loadSkeletonJson('profile')
-        .then(value => {
-            try {
-                let currentProfile = value.data.active_profile;
-                let cdnUrl = config.cdn_url;
-                // console.log("CDN url is " + cdnUrl);
-                for (let key in fieldList) {
-                    if (fieldList[key] === null) {
-                        continue;
-                    }
-                    if (typeof fieldList[key] === 'object') {
-                        fieldList[key] = fieldList[key][0];
-                    }
-                    let newKey = key.slice(key.lastIndexOf(".") + 1);
-                    if (keysWIthListValues.indexOf(newKey) !== -1 && typeof fieldList[key] !== 'object') {
-                        newFieldList[newKey] = [fieldList[key]];
-                    } else if (keysPointingToUrls.indexOf(newKey) !== -1) {
-                        let value = fieldList[key];
-                        let newValue = value;
-                        if (value === null || value.search('https://www.youtube.com') !== -1) {
-                            newValue = value;
-                        } else if (value.search(/^http(s?):\/\/(((\w|\d)+)\.)+(\w|\d)+/) !== -1) {
-                            newValue = value.replace(/^http(s?):\/\/(((\w|\d)+)\.)+(\w|\d)+/, cdnUrl);
-                        } else if (newKey === 'posterImage' || newKey === 'appIcon' || newKey === 'artifactUrl' || newKey === 'downloadUrl') {
-                            newValue = cdnUrl + '/xcontent/' + value;
-                        } else {
-                            newValue = cdnUrl + '/' + value;
-                        }
-                        newFieldList[newKey] = newValue;
-                    } else {
-                        newFieldList[newKey] = fieldList[key];
-                    }
-                }
-                contentType = plurals[newFieldList.contentType];
-                // Add objType to fields
-                let objType = newFieldList.objectType;
-                newFieldList = {
-                    ...newFieldList,
-                    objType
-                };
-                return defer.resolve({
-                    fields: newFieldList,
-                    contentType
-                });
-            } catch (e) {
-                console.log("Corrupt JSON file!");
-                throw e;
+
+    try {
+        let cdnUrl = config.cdn_url;
+        for (let key in fieldList) {
+            if (fieldList[key] === null) {
+                continue;
             }
-        }).catch(err => {
-            console.log("JSON errors caught?");
-            return defer.reject({
-                err
-            });
-        })
+            if (typeof fieldList[key] === 'object') {
+                fieldList[key] = fieldList[key][0];
+            }
+            let newKey = key.slice(key.lastIndexOf(".") + 1);
+            if (keysWIthListValues.indexOf(newKey) !== -1 && typeof fieldList[key] !== 'object') {
+                newFieldList[newKey] = [fieldList[key]];
+            } else if (keysPointingToUrls.indexOf(newKey) !== -1) {
+                let value = fieldList[key];
+                let newValue = value;
+                if (value === null || value.search('https://www.youtube.com') !== -1) {
+                    newValue = value;
+                } else if (value.search(/^http(s?):\/\/(((\w|\d)+)\.)+(\w|\d)+/) !== -1) {
+                    newValue = value.replace(/^http(s?):\/\/(((\w|\d)+)\.)+(\w|\d)+/, cdnUrl);
+                } else if (newKey === 'posterImage' || newKey === 'appIcon' || newKey === 'artifactUrl' || newKey === 'downloadUrl') {
+                    newValue = cdnUrl + '/xcontent/' + value;
+                } else {
+                    newValue = cdnUrl + '/' + value;
+                }
+                newFieldList[newKey] = newValue;
+            } else {
+                newFieldList[newKey] = fieldList[key];
+            }
+        }
+        contentType = plurals[newFieldList.contentType];
+        // Add objType to fields
+        let objType = newFieldList.objectType;
+        newFieldList = {
+            ...newFieldList,
+            objType
+        };
+        defer.resolve({
+            fields: newFieldList,
+            contentType
+        });
+    }
+    catch (err) {
+        console.log("Corrupt JSON file!");
+        defer.reject({ err });
+    }
+
     return defer.promise;
 }
 
@@ -224,28 +204,23 @@ let cleanKeys = (fieldList) => {
 let parseResults = (values) => {
     let defer = q.defer();
     let fields = values.map(value => (JSON.parse(value.value.body).fields));
-
-//    console.log("Parsing");
-//    console.log("-----------");
-//    console.log(fields);
-
     let fieldPromises = [];
-    console.log(fields.length);
+
     for (let i = 0; i < fields.length; i++) {
-        //console.log(fields[i]);
         fieldPromises.push(cleanKeys(fields[i]));
     }
-    q.allSettled(fieldPromises).then(values => {
-        //console.log(values.map(value => value.value)); //HERE
-        return defer.resolve({
-            responses: values.map(value => value.value)
+    q.allSettled(fieldPromises)
+        .then(values => {
+            return defer.resolve({
+                responses: values.map(value => value.value)
+            });
+        })
+        .catch(err => {
+            console.log(err);
+            return defer.reject({
+                err
+            });
         });
-    }).catch(err => {
-        console.log(err);
-        return defer.reject({
-            err
-        });
-    });
     return defer.promise;
 }
 
@@ -268,25 +243,28 @@ let doThoroughSearch = (queryString) => {
             query: queryString
         });
     }
-   searchPromise
+    searchPromise
         .then(value => {
             let defer2 = q.defer();
             let hitPromises = [];
             let hits = JSON.parse(value.body).hits;
             for (let i in hits) {
                 let id = hits[i].id;
-                    hitPromises.push(getDocument({
+                hitPromises.push(getDocument({
                     indexName: config.bleve_search.db_name,
                     documentID: id
                 }));
             }
-            q.allSettled(hitPromises).then(values => {
-                return defer2.resolve((parseResults(values)));
-            })
+            q.allSettled(hitPromises)
+                .then(values => {
+                    return defer2.resolve((parseResults(values)));
+                })
             return defer2.promise;
-        }).then(value => {
+        })
+        .then(value => {
             return defer.resolve(value);
-        }).catch(err => {
+        })
+        .catch(err => {
             console.log("Error at search: " + JSON.stringify(err));
             return defer.reject({
                 err
@@ -340,123 +318,121 @@ let performCounting = (results, facets) => {
             responseStructure[facet].push(result[facet]);
         });
     });
-    crunchFacets(responseStructure).then(value => {
-        let facetResult = value.facetResult;
-        let facetResultAsList = [];
-        for (let key in facetResult) {
-            let keyObject = [];
-            for (let key2 in facetResult[key]) {
-                keyObject.push({
-                    name: key2,
-                    count: facetResult[key][key2]
+    crunchFacets(responseStructure)
+        .then(value => {
+            let facetResult = value.facetResult;
+            let facetResultAsList = [];
+            for (let key in facetResult) {
+                let keyObject = [];
+                for (let key2 in facetResult[key]) {
+                    keyObject.push({
+                        name: key2,
+                        count: facetResult[key][key2]
+                    });
+                }
+                facetResultAsList.push({
+                    values: keyObject,
+                    name: key
                 });
             }
-            facetResultAsList.push({
-                values: keyObject,
-                name: key
+            return defer.resolve({
+                results,
+                facets: facetResultAsList
             });
-        }
-        return defer.resolve({
-            results,
-            facets: facetResultAsList
+        })
+        .catch(e => {
+            return defer.reject({
+                err: e
+            });
         });
-    }).catch(e => {
-        return defer.reject({
-            err: e
-        });
-    });
     return defer.promise;
 }
 
 let generateResponseStructure = (rSt) => {
     let defer = q.defer();
-	let secs = rSt.result.response.sections;
-	let cacheQuery;
+    let secs = rSt.result.response.sections;
+    let cacheQuery;
 
-	secs = secs.map(sec => {
-		let search = sec.searchQuery;
+    secs = secs.map(sec => {
+        let search = sec.searchQuery;
 
-		let strDisplay = JSON.stringify(sec.display);
-		let searchQuery = JSON.stringify(sec.searchQuery);
+        let strDisplay = JSON.stringify(sec.display);
+        let searchQuery = JSON.stringify(sec.searchQuery);
 
-		if(!search) {
-			searchQuery = cacheQuery;
-		} else {
-			cacheQuery = searchQuery;
-		}
+        if (!search) {
+            searchQuery = cacheQuery;
+        } else {
+            cacheQuery = searchQuery;
+        }
 
-		return {
-			...sec,
-			display: strDisplay,
-			name: sec.display.name.en,
-			searchQuery: searchQuery
-		};
-	});
+        return {
+            ...sec,
+            display: strDisplay,
+            name: sec.display.name.en,
+            searchQuery: searchQuery
+        };
+    });
 
-	rSt.result.response.sections = secs;
+    rSt.result.response.sections = secs;
 
     defer.resolve({
-	    responseStructure: rSt
+        responseStructure: rSt
     });
     return defer.promise;
 }
 
 let doSectionwiseSearch = (sectionObject) => {
-	    let searchpromise;
-	    let queryObject = {
-	      
-		   "conjuncts" : [] 
-	    }    
-	    for(let key in sectionObject){
-                
-		    if(key !== "compatibilityLevel"){
-    
-			    if(typeof sectionObject[key] === "object") {
-				    let disjuncts = [];
-				    for(let i in sectionObject[key])
-				    {	
-				        disjuncts.push({ 
-		   			        "field" : "archive.items." + key ,
-		   			        "match_phrase" : "" + sectionObject[key][i]
-				        });
-				    }	
-				    queryObject.conjuncts.push({disjuncts});
+    let queryObject = {
+        "conjuncts": []
+    }
 
-			    }
-			    else {
-		   	            field = { 
-		   		            "field" : "archive.items."+ key ,
-		   		            "match_phrase" : "" + sectionObject[key]
-				        }
-			    }		
-            }   	
-	    }
-	    
-	     searchPromise = advancedSearch({
-	        indexName : config.bleve_search.db_name,
-	        query : queryObject
-	    });
-		return searchPromise;
-}	
-
-let resolvePromises = (responsePromiseList) => {	
-        let defer = q.defer(); 
-	    let hitPromises = [];
-        let hits = JSON.parse(responsePromiseList.body).hits;
-	    let total_hits = JSON.parse(responsePromiseList.body).total_hits;	    
-            for (let i in hits) {
-                let id = hits[i].id;
-                hitPromises.push(getDocument({
-                    indexName: config.bleve_search.db_name,
-                    documentID: id
-                }));
+    for (let key in sectionObject) {
+        if (key !== "compatibilityLevel") {
+            if (typeof sectionObject[key] === "object") {
+                let disjuncts = [];
+                for (let i in sectionObject[key]) {
+                    disjuncts.push({
+                        "field": "archive.items." + key,
+                        "match_phrase": "" + sectionObject[key][i]
+                    });
+                }
+                queryObject.conjuncts.push({ disjuncts });
             }
-       
-	       q.allSettled(hitPromises).then(values => {
-                return defer.resolve((parseResults(values)));
-       		})
-            return defer.promise;
-         
+            else {
+                field = {
+                    "field": "archive.items." + key,
+                    "match_phrase": "" + sectionObject[key]
+                }
+            }
+        }
+    }
+
+    searchPromise = advancedSearch({
+        indexName: config.bleve_search.db_name,
+        query: queryObject
+    });
+    return searchPromise;
+}
+
+let resolvePromises = (responsePromiseList) => {
+    let defer = q.defer();
+    let hitPromises = [];
+    let hits = JSON.parse(responsePromiseList.body).hits;
+    let total_hits = JSON.parse(responsePromiseList.body).total_hits;
+    for (let i in hits) {
+        let id = hits[i].id;
+        hitPromises.push(getDocument({
+            indexName: config.bleve_search.db_name,
+            documentID: id
+        }));
+    }
+
+    q.allSettled(hitPromises)
+        .then(values => {
+            return defer.resolve((parseResults(values)));
+        })
+    return defer.promise;
+
 }
 
 
@@ -479,9 +455,7 @@ let getHomePage = (req, res) => {
     */
     let defer = q.defer();
     let parsedReq = req.body;
-    let reqConfig = parsedReq.request.name; 
-    log('getHomePage', parsedReq, req.path);
-    //console.log(JSON.stringify(parsedReq, null, 4));
+    let reqConfig = parsedReq.request.name;
     let loadedJson = {};
     let responseStructure = {};
     let query = [];
@@ -498,62 +472,62 @@ let getHomePage = (req, res) => {
             let ver = parsedReq.ver;
             let filters = request.filters;
             let configFilters = {};
-	        let bulkPromises = [];
+            let bulkPromises = [];
             let sectionResponsePromises = [];
             let sections = loadedJson.response.sections;
             let sectionResponse = [];
             for (let i in sections) {
-		        let sectionObject= {};
+                let sectionObject = {};
                 sectionNames[i] = sections[i].display.name.en;
-		        configFilters = sections[i].searchQuery.request.filters;
+                configFilters = sections[i].searchQuery.request.filters;
                 for (let key in filters) {
                     sectionObject[key] = filters[key];
                 }
                 for (let key in configFilters) {
-                    sectionObject[key] = configFilters[key];  
+                    sectionObject[key] = configFilters[key];
                 }
                 sectionResponsePromises.push(doSectionwiseSearch(sectionObject));
-            }   
-		return q.all(sectionResponsePromises);				
-	}).then(value => {
-		let responsePromises = [];
-        for(let i in value) {
-            responsePromises.push(resolvePromises(value[i]));
-        }
-        return q.all(responsePromises); 
-	}).then(value => {
-		let responses = {};
-        for(let i in  sectionNames) {
-            responses[i] = value[i].responses.map(response => response.fields)
-        }
-        return responses;	
-	}).then(value => {
-        sectionResponse = value
-		return loadSkeletonJson(`${config.app_pages}/${reqConfig}HomePage`)	
-	}).then(value => {
-	    responseStructure = value.data;
-		for(let i in sectionResponse) {	
-            responseStructure.result.response.sections[i].contents.push(...sectionResponse[i]);
-	    }
-		
-		return generateResponseStructure(responseStructure);	
-	}).then(value => {
-        responseStructure = value.responseStructure;
-        responseStructure.ts = new Date();
-        responseStructure.ver = parsedReq.ver;
-        responseStructure.id = parsedReq.id;
-        responseStructure.name = parsedReq.request.name;
-        responseStructure.params.resmsgid = uuidv4();
-        responseStructure.params.msgid = uuidv4();
+            }
+            return q.all(sectionResponsePromises);
+        })
+        .then(value => {
+            let responsePromises = [];
+            for (let i in value) {
+                responsePromises.push(resolvePromises(value[i]));
+            }
+            return q.all(responsePromises);
+        })
+        .then(value => {
+            let responses = {};
+            for (let i in sectionNames) {
+                responses[i] = value[i].responses.map(response => response.fields)
+            }
+            return responses;
+        })
+        .then(value => {
+            sectionResponse = value
+            return loadSkeletonJson(`${config.app_pages}/${reqConfig}HomePage`)
+        })
+        .then(value => {
+            responseStructure = value.data;
+            for (let i in sectionResponse) {
+                responseStructure.result.response.sections[i].contents.push(...sectionResponse[i]);
+            }
 
-           // console.log(JSON.stringify(responseStructure, null, 4));
-           // fs.writeFile("/home/admin/api.debug", JSON.stringify(responseStructure), (err, res) => console.log('Written debug info to api.debug'));
+            return generateResponseStructure(responseStructure);
+        })
+        .then(value => {
+            responseStructure = value.responseStructure;
+            responseStructure.ts = new Date();
+            responseStructure.ver = parsedReq.ver;
+            responseStructure.id = parsedReq.id;
+            responseStructure.name = parsedReq.request.name;
+            responseStructure.params.resmsgid = uuidv4();
+            responseStructure.params.msgid = uuidv4();
 
-            //let daata = fs.readFileSync("/home/admin/api_working.debug", 'utf-8');
-            //return res.status(200).json(JSON.parse(daata));
-            
-        return res.status(200).json(responseStructure);
-        }).catch(e => {
+            return res.status(200).json(responseStructure);
+        })
+        .catch(e => {
             console.log(e);
             return res.status(500).json({
                 err: e
@@ -602,9 +576,6 @@ let performSearch = (req, res) => {
 
     */
     let request = req.body.request;
-
-    //    log('performSearch', request, req.path);
-
     let facets = request.facets;
     let responseStructure = {};
     let secondaryQuery = request.filters.identifier || request.filters.contentType;
@@ -613,44 +584,43 @@ let performSearch = (req, res) => {
     if (query.length < 1) {
         query = request.filters.identifier[0];
     }
-    loadSkeletonJson('searchResponseSkeleton').then(value => {
-        responseStructure = value.data;
-        return doThoroughSearch(query);
-    }).then(value => {
-        //console.log(value);
-        let mappedValues = value.responses.map(val => val.fields);
-        return performCounting(mappedValues, facets);
-    }).then(value => {
-        responseStructure.result.count = value.results.length;
-        responseStructure.result.content = value.results;
-        responseStructure.result.facets = value.facets;
-        //console.log('performSearch resposne \n', JSON.stringify(responseStructure, null, 4));
-        //console.log('\n/performSearch response');
-        fs.writeFile("/home/admin/api_search.debug", JSON.stringify(responseStructure), (err, res) => console.log({
-            err,
-            res
-        }));
-        return res.status(200).json(responseStructure);
-    }).catch(e => {
-        console.log(e);
-        return res.status(500).json({
-            e
+
+    loadSkeletonJson('searchResponseSkeleton')
+        .then(value => {
+            responseStructure = value.data;
+            return doThoroughSearch(query);
+        })
+        .then(value => {
+            let mappedValues = value.responses.map(val => val.fields);
+            return performCounting(mappedValues, facets);
+        })
+        .then(value => {
+            responseStructure.result.count = value.results.length;
+            responseStructure.result.content = value.results;
+            responseStructure.result.facets = value.facets;
+            return res.status(200).json(responseStructure);
+        })
+        .catch(e => {
+            console.log(e);
+            return res.status(500).json({
+                e
+            });
         });
-    });
 }
 
 let getEcarById = (req, res) => {
-    log('getEcarById', req.params, req.path);
     let contentID = req.params.contentID;
     let responseStructure = {};
     loadSkeletonJson('searchIdResponseSkeleton')
         .then(value => {
             responseStructure = value.data;
             return doThoroughSearch(contentID);
-        }).then(value => {
+        })
+        .then(value => {
             responseStructure.result.content = value.responses[0].fields;
             return res.status(200).json(responseStructure);
-        }).catch(e => {
+        })
+        .catch(e => {
             return res.status(500).json({
                 e
             });
@@ -658,13 +628,7 @@ let getEcarById = (req, res) => {
 }
 
 let telemetryData = (req, res) => {
-    //console.log(req.files);
     let body = JSON.stringify(req.body);
-    log('telemetryData', body, req.path);
-    console.log(req.headers);
-    //return res.status(200).json({success: true});
-    //let fileData = req.files;
-    //let oldPath = fileData.file.path;
     let telemetryDir = config.telemetry.src_dir;
     let now = new Date().getTime();
     baseInt++;
@@ -680,34 +644,15 @@ let telemetryData = (req, res) => {
             responseStructure = value.data;
             fs.writeFile(telemetryDir + newFileName, body, (err) => {
                 responseStructure.ts = new Date();
-            return res.status(200).json(responseStructure);
+                return res.status(200).json(responseStructure);
             })
-            /*
-            zlib.createGzip(new Buffer(body, 'utf-8'), (err, data) => {
-                if (err) {
-                    console.log("ERR");
-                    console.log(err);
-                } else {
-                    fs.writeFile(telemetryDir + newFileName, data, (err) => {
-                        responseStructure.ts = new Date();
-                        if (err) {
-                            responseStructure.status = "error";
-                            responseStructure.errmsg = err;
-                            return res.status(500).json(responseStructure);
-                        } else {
-                            return res.status(200).json(responseStructure);
-                        }
-                    });
-                }
-            });*/
-        }).catch(e => {
+        })
+        .catch(e => {
             responseStructure.status = "error";
             responseStructure.errmsg = e;
             return res.status(500).json(responseStructure);
         });
 }
-
-// Custom Extract BEHAVIOR
 
 /*
     Moves a file with a promise wrapper; deletes any older file present with the same name.
@@ -738,7 +683,6 @@ let moveFileWithPromise = (source, destination) => {
 /*
     Creates a folder if it does not exist. Essentially an internal handler
 */
-
 let createFolderIfNotExists = (folderName) => {
     let defer = q.defer();
     fs.stat(folderName, (err, stats) => {
@@ -828,11 +772,13 @@ let changeDownloadUrl = (jsonFile, file) => {
     modifyJsonData(jsonFile, file)
         .then(value => {
             return writeNewData(value.jsonData, jsonFile)
-        }).then(value => {
+        })
+        .then(value => {
             return defer.resolve({
                 jsonFile
             });
-        }).catch(err => {
+        })
+        .catch(err => {
             return defer.reject({
                 err
             });
@@ -849,13 +795,15 @@ let deleteXContentFolderIfExists = (dir, file) => {
         if (err) {
             return defer.resolve();
         } else {
-            deleteDir(dir + folderName).then(value => {
-                return defer.resolve();
-            }).catch(err => {
-                return defer.reject({
-                    err
+            deleteDir(dir + folderName)
+                .then(value => {
+                    return defer.resolve();
+                })
+                .catch(err => {
+                    return defer.reject({
+                        err
+                    });
                 });
-            });
         }
     });
     return defer.promise;
@@ -889,9 +837,7 @@ let deleteMovedEcarFileIfExists = (dir, file) => {
         } else {
             fs.unlink(dir + 'ecar_files/' + file, (err) => {
                 if (err) {
-                    return defer.reject({
-                        err
-                    });
+                    return defer.reject({ err });
                 } else {
                     return defer.resolve();
                 }
@@ -924,59 +870,64 @@ let deleteOriginalEcarFileIfExists = (dir, file) => {
 let deleteEcarData = (dir, file) => {
     let defer = q.defer();
     let fileNameAsFolder = file.slice(0, file.lastIndexOf('.')) + '/';
-    deleteOriginalEcarFileIfExists(dir, file).then(value => {
-        console.log("Deleted original ecar file: " + file);
-        return deleteDir(dir + fileNameAsFolder);
-    }).then(value => {
-        console.log("Deleted temporary folder: " + file);
-        return deleteXContentFolderIfExists(dir, file);
-    }).then(value => {
-        console.log("Deleted XContent: " + file);
-        return deleteMovedEcarFileIfExists(dir, file);
-    }).then(value => {
-        console.log("Deleted ECAR File: " + file);
-        return deleteMovedJsonFileIfExists(dir, file);
-    }).then(value => {
-        console.log("Deleted JSON File: " + file);
-        return defer.resolve();
-    }).catch(err => {
-        console.log("Delete ecar error!: " + file);
-        console.log(err);
-        return defer.reject({
-            err
+    deleteOriginalEcarFileIfExists(dir, file)
+        .then(value => {
+            console.log("Deleted original ecar file: " + file);
+            return deleteDir(dir + fileNameAsFolder);
+        })
+        .then(value => {
+            console.log("Deleted temporary folder: " + file);
+            return deleteXContentFolderIfExists(dir, file);
+        })
+        .then(value => {
+            console.log("Deleted XContent: " + file);
+            return deleteMovedEcarFileIfExists(dir, file);
+        })
+        .then(value => {
+            console.log("Deleted ECAR File: " + file);
+            return deleteMovedJsonFileIfExists(dir, file);
+        })
+        .then(value => {
+            console.log("Deleted JSON File: " + file);
+            return defer.resolve();
+        })
+        .catch(err => {
+            console.log("Delete ecar error!: " + file);
+            console.log(err);
+            return defer.reject({
+                err
+            });
         });
-    });
     return defer.promise;
 }
 
 /*
     Post extraction methods, called if extraction is successful and data needs to be post-processed.
 */
-
 let moveInternalFolders = (dir, fileNameAsFolder) => {
     let defer = q.defer();
     const parent = dir + fileNameAsFolder;
-	
-	readdir(parent)
-		.then(files => {
-			const filesDetailsPromises = files.map(file => {
-				const path = parent + file;
-				return getInfo(path).then(stats => ({
-					...stats,
-					path,
-					name: file,
-					isDirectory: stats.isDirectory()
-				}));
-			});
 
-			return q.all(filesDetailsPromises);
-		})
-		.then(filesDetails => {
-			const internalFolders = filesDetails.filter(item => item.isDirectory);
-			const moveFilePromises = internalFolders.map(folder => moveFileWithPromise(folder.path, `${dir}xcontent/${folder.name}`));
-			return q.all(moveFilePromises);
-		})
-		.then(moveFileStatus => {	
+    readdir(parent)
+        .then(files => {
+            const filesDetailsPromises = files.map(file => {
+                const path = parent + file;
+                return getInfo(path).then(stats => ({
+                    ...stats,
+                    path,
+                    name: file,
+                    isDirectory: stats.isDirectory()
+                }));
+            });
+
+            return q.all(filesDetailsPromises);
+        })
+        .then(filesDetails => {
+            const internalFolders = filesDetails.filter(item => item.isDirectory);
+            const moveFilePromises = internalFolders.map(folder => moveFileWithPromise(folder.path, `${dir}xcontent/${folder.name}`));
+            return q.all(moveFilePromises);
+        })
+        .then(moveFileStatus => {
             defer.resolve();
         })
         .catch(e => {
@@ -987,17 +938,17 @@ let moveInternalFolders = (dir, fileNameAsFolder) => {
 }
 
 let readFileWithPromise = (path) => {
-	let defer = q.defer();
+    let defer = q.defer();
 
-	fs.readFile(path, (err, data) => {
-		if(err) {
-			defer.reject(err);
-		} else {
-			defer.resolve(JSON.parse(data));
-		}
-	});
+    fs.readFile(path, (err, data) => {
+        if (err) {
+            defer.reject(err);
+        } else {
+            defer.resolve(JSON.parse(data));
+        }
+    });
 
-	return defer.promise;
+    return defer.promise;
 }
 
 let getEcarName = (id, ver) => `${id}_0.0.ecar`;
@@ -1005,92 +956,106 @@ let getEcarName = (id, ver) => `${id}_0.0.ecar`;
 let doPostExtraction = (dir, file) => {
     let defer = q.defer();
     let fileNameAsFolder = file.slice(0, -5) + '/';
+
     /*
       1. Transfer the ecar file to ecar_files Directory
       2. Rename manifest.json to name of ecar file and sent to json_files
       3. Transfer the do_whatever folder to xcontent
     */
-
     let manifestData = undefined;
     const manifestFile = dir + fileNameAsFolder + 'manifest.json';
 
-    readFileWithPromise(manifestFile).then(fileData => {
-    	manifestData = fileData;
+    readFileWithPromise(manifestFile)
+        .then(fileData => {
+            manifestData = fileData;
 
-	    return createFolderIfNotExists(dir + 'ecar_files/');
-    }).then(resolve => {
-    	const id = manifestData.archive.items[0].identifier;
-    	const ver = manifestData.archive.items[0].pkgVersion;
-    	const target = getEcarName(id, ver);
+            return createFolderIfNotExists(dir + 'ecar_files/');
+        })
+        .then(resolve => {
+            const id = manifestData.archive.items[0].identifier;
+            const ver = manifestData.archive.items[0].pkgVersion;
+            const target = getEcarName(id, ver);
 
-    	return moveFileWithPromise(dir + file, dir + 'ecar_files/' + target);
-    }).then(resolve => {
-        console.log("Moved file to ecar_files: " + file);
-        return createFolderIfNotExists(dir + 'json_dir/');
-    }).then(resolve => {
-	    const id = manifestData.archive.items[0].identifier;
-	    const ver = manifestData.archive.items[0].pkgVersion;
-	    const target = getEcarName(id, ver);
+            return moveFileWithPromise(dir + file, dir + 'ecar_files/' + target);
+        })
+        .then(resolve => {
+            console.log("Moved file to ecar_files: " + file);
+            return createFolderIfNotExists(dir + 'json_dir/');
+        })
+        .then(resolve => {
+            const id = manifestData.archive.items[0].identifier;
+            const ver = manifestData.archive.items[0].pkgVersion;
+            const target = getEcarName(id, ver);
 
-        let jsonFile = dir + fileNameAsFolder + 'manifest.json';
+            let jsonFile = dir + fileNameAsFolder + 'manifest.json';
 
-        console.log("Attempting to play with " + jsonFile);
+            console.log("Attempting to play with " + jsonFile);
 
-        return changeDownloadUrl(jsonFile, target);
-    }).then(resolve => {
-        let jsonFile = resolve.jsonFile;
+            return changeDownloadUrl(jsonFile, target);
+        })
+        .then(resolve => {
+            let jsonFile = resolve.jsonFile;
 
-	    const id = manifestData.archive.items[0].identifier;
-	    const ver = manifestData.archive.items[0].pkgVersion;
-	    const target = getEcarName(id, ver);
+            const id = manifestData.archive.items[0].identifier;
+            const ver = manifestData.archive.items[0].pkgVersion;
+            const target = getEcarName(id, ver);
 
-	    return moveFileWithPromise(jsonFile, dir + 'json_dir/' + target + '.json');
-    }).then(resolve => {
-        console.log("Moved JSON file: " + file);
-        return createFolderIfNotExists(dir + 'xcontent/');
-    }).then(resolve => {
-        return moveInternalFolders(dir, fileNameAsFolder);
-    }).then(value => {
-        console.log("Moved XContent: " + file);
-        return deleteDir(dir + fileNameAsFolder);
-    }).then(value => {
-        console.log("Deleted directory: " + file);
-        return defer.resolve(value);
-    }).catch(e => {
-        console.log("Wrong ecar format for " + file);
-        console.log(e);
-        return defer.reject({
-            err: e
-        });
-        deleteEcarData(dir, file).then(value => {
+            return moveFileWithPromise(jsonFile, dir + 'json_dir/' + target + '.json');
+        })
+        .then(resolve => {
+            console.log("Moved JSON file: " + file);
+            return createFolderIfNotExists(dir + 'xcontent/');
+        })
+        .then(resolve => {
+            return moveInternalFolders(dir, fileNameAsFolder);
+        })
+        .then(value => {
+            console.log("Moved XContent: " + file);
+            return deleteDir(dir + fileNameAsFolder);
+        })
+        .then(value => {
+            console.log("Deleted directory: " + file);
+            return defer.resolve(value);
+        })
+        .catch(e => {
+            console.log("Wrong ecar format for " + file);
+            console.log(e);
             return defer.reject({
                 err: e
             });
-        }).catch(err => {
-            return defer.reject({
-                err
-            })
+            deleteEcarData(dir, file)
+                .then(value => {
+                    return defer.reject({
+                        err: e
+                    });
+                })
+                .catch(err => {
+                    return defer.reject({
+                        err
+                    })
+                });
         });
-    });
     return defer.promise;
 }
 
 let performExtraction = (parentDir, fileName, folderName) => {
     let defer = q.defer();
+
     console.log("Attempting to extract");
     console.log(parentDir + fileName);
     console.log(parentDir + folderName);
+
     extractZip(parentDir + fileName, parentDir + folderName)
         .then(value => {
-            console.log("Completed extraction, 842");
+            console.log("Completed extraction");
             return defer.resolve(value);
         }, reason => {
-            //console.log(reason);
             return defer.reject({
                 err: 'Cannot extract this file'
             });
-        }).catch(e => {
-            console.log("You are the culprit 848");
+        })
+        .catch(e => {
+            console.log("Error occured in extractZip");
         });
     return defer.promise;
 }
@@ -1101,29 +1066,37 @@ let performExtraction = (parentDir, fileName, folderName) => {
 let extractFile = (dir, file) => {
     let defer = q.defer();
     let folderName = '';
+
     console.log("Extracting " + file);
-    createFolderToExtractFiles(dir, file).then(value => {
-        console.log("Created folder for extraction: " + file);
-        folderName = value;
-        return performExtraction(dir, file, folderName);
-    }).then(value => {
-        console.log("Extracted!: " + file);
-        return doPostExtraction(dir, file);
-    }).then(value => {
-        console.log("Post extraction done!: " + file);
-        return defer.resolve(value);
-    }).catch(e => {
-        console.log("Error processing " + file);
-        if (e.err && e.err === 'Cannot extract this file') {
-            deleteEcarData(dir, file).then(value => {
+
+    createFolderToExtractFiles(dir, file)
+        .then(value => {
+            console.log("Created folder for extraction: " + file);
+            folderName = value;
+            return performExtraction(dir, file, folderName);
+        })
+        .then(value => {
+            console.log("Extracted!: " + file);
+            return doPostExtraction(dir, file);
+        })
+        .then(value => {
+            console.log("Post extraction done!: " + file);
+            return defer.resolve(value);
+        })
+        .catch(e => {
+            console.log("Error processing " + file);
+            if (e.err && e.err === 'Cannot extract this file') {
+                deleteEcarData(dir, file)
+                    .then(value => {
+                        return defer.reject(e);
+                    })
+                    .catch(e2 => {
+                        return defer.reject(e2);
+                    });
+            } else {
                 return defer.reject(e);
-            }).catch(e2 => {
-                return defer.reject(e2);
-            });
-        } else {
-            return defer.reject(e);
-        }
-    });
+            }
+        });
     return defer.promise;
 }
 
@@ -1152,9 +1125,7 @@ let log = (controller, body, path) => {
     console.log('Path called :', path);
     console.log('Controller :', controller);
     console.log('Req body :\n', body);
-    console.log('/Req body');
 }
-
 
 module.exports = {
     getHomePage,
@@ -1165,6 +1136,3 @@ module.exports = {
     performRecommendation,
     createFolderIfNotExists
 }
-
-
-

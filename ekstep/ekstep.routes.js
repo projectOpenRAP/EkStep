@@ -5,16 +5,12 @@ let {
     getHomePage,
     getEcarById,
     performSearch,
-    telemetryData,
-    extractFile,
-    performRecommendation,
-    createFolderIfNotExists
+    telemetryData
 } = require('./ekstep.controller.js');
-// let { uploadTelemetryToCloud } = require('./ekstep.telemetry_upload.js');
 
 module.exports = app => {
     /*
-        ekstep API endpoints
+        App endpoints
     */
     app.post('/api/data/v1/page/assemble', getHomePage);
     app.get('/api/content/v1/read/:contentID', getEcarById);
