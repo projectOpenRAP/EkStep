@@ -24,7 +24,8 @@ let generateJwt = (key, secret) => {
 }
 
 /*
-Imitate
+Request example:
+
 curl -X POST \
 https://diksha.gov.in/api/api-manager/v1/consumer/mobile_app_openrap/credential/register \
     -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyZjg5NGZhOTAzY2M0NWU3ODc2NzdkNTdhMmJjZDY1NyJ9.j6PENpl5brIYYRoSf7kHI9JCHxQit-4_eKXJkBR_OVM' \
@@ -83,7 +84,8 @@ let registerEkStepApp = () => {
 }
 
 /*
-Must mimic
+Request example:
+
 curl -X POST \
 https://diksha.gov.in/api/api-manager/v1/consumer/mobile_device_openrap/credential/register \
     -H 'Authorization: bearer {{Auth Token - generate using key and secret return by APP register API}}' \
