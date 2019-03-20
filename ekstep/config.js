@@ -3,6 +3,26 @@
 */
 
 module.exports = {
+    
+    /*
+        core openrap config
+    */
+
+    "FS_ROOT": "",
+    "username": "",
+    "password": "",
+    "serverIP": "",
+    "telemetryAPI": {
+        "init": "", // Authenticates user and returns a token
+        "hello": "", // Checks if the user is authenticated
+        "upload": "" // Load telemetry
+    },
+    "keyFile": "",
+
+    /*
+        plugin specific config
+    */
+
     "plugin_name": "",
     "root_dir": "",
     "BASE_URL": "",
@@ -41,9 +61,19 @@ module.exports = {
         }
     },
     "cloud": {
-        "endpoint1": "",
-        "endpoint2": "",
-        "endpoint3": "",
-        "finalToken": ""
+        "search_api": {
+			"url": "",
+			"auth_token": "",
+			"user_token": ""
+		},
+		"app_register_api": {
+            "url": "",
+            "token": ""
+        },
+        "device_register_api": {
+            "url": "",
+            "token": ""
+        },
+		"filter": {}
     }
 }
