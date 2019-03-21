@@ -1,5 +1,5 @@
 <configuration version="28">
-    <folder id="2swpc-ysqpk" label="forwater" path="/home/admin/forwater" type="receive" rescanIntervalS="3600" fsWatcherEnabled="true" fsWatcherDelayS="10" ignorePerms="false" autoNormalize="true">
+    <folder id="bu99t-rrsic" label="forwater" path="/home/admin/forwater" type="receive" rescanIntervalS="3600" fsWatcherEnabled="true" fsWatcherDelayS="10" ignorePerms="false" autoNormalize="true">
         <filesystemType>basic</filesystemType>
         <device id="NVRZOEJ-WPGQMZ4-JBHS3GN-D5OKLMK-JL7Q37C-756TJTU-5JVLKB4-2JVHFAE" introducedBy=""></device>
         <minDiskFree unit="%">1</minDiskFree>
