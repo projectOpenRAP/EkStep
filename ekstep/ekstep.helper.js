@@ -1,15 +1,18 @@
 const q = require('q');
 const jwt = require('jsonwebtoken');
 const request = require('request');
+const uuid4 = require('uuid/v4');
 let moment = require('moment');
 
 let config = require('./config.js');
 
 let getTimestamp = (pattern) => moment().format(pattern);
 
+let generateRandomString = (length = 20) => uuid4().replace(/-/g, '').substring(0, length);
+
 let generateJwt = (key, secret) => {
     let defer = q.defer();
-    let payload = { "iss": key };
+    let payload = { 'iss': key };
     let options = {
         algorithm: 'RS256'
     };
@@ -58,7 +61,7 @@ let registerEkStepApp = () => {
         'ts': timestamp,
         'id': 'ekstep.genie.device.register',
         'request': {
-            "key": "0bad2971aee14143ca606"
+            'key': generateRandomString(21)
         },
         'ver': '1.0'
     };
@@ -129,7 +132,7 @@ let registerEkStepDevice = (token) => {
             "msgid": "ff305d54-85b4-341b-da2f-eb6b9e5460fa"
         },
         'request': {
-            "key": "test-key"
+            'key': generateRandomString(21)
         },
         'ver': '2.0'
     };
