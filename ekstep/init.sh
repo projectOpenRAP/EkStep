@@ -5,17 +5,22 @@ variant=$4
 type=$5
 
 devmgmt_dir="${build_dir}/devmgmtV2/"
-plugin_dir="${build_dir}/appServer/plugins/${plugin}"
+plugins_root_dir="${build_dir}/appServer/plugins"
+plugin_dir="${plugins_root_dir}/${plugin}"
 nginx_dir="${build_dir}/rootfs_overlay/etc/nginx/sites-enabled/"
 syncthing_dir="${build_dir}/rootfs_overlay/root/.config/syncthing/"
 
-git clone $git_repo $build_dir/tmp
-cd $build_dir/tmp
-git checkout develop && git pull
+cd $plugins_root_dir
 
-cd $build_dir
-mv tmp/$plugin ../
+
+mv tmp/$plugin .
 rm -rf tmp
+
+# echo '----------------current directory deets---------------'
+# echo '--pwd--'
+# pwd
+# echo '--ls--'
+# ls .
 
 cd $plugin_dir
 cp -r config/$variant/* .
