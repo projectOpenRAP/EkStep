@@ -26,7 +26,7 @@ def init(base_dir, repo_name, variant="diksha", prod=False):
 		plugin_dir = "{}/{}".format(plugin_repo_dir, plugin_name)
 
 		if variant in available_variants:
-			cmd = "{}/init.sh {} {} {} {} {}".format(plugin_name, base_dir, repo_name, variant, build_type)
+			cmd = "{}/init.sh {} {} {} {} {}".format(plugin_dir, plugin_name, base_dir, repo_name, variant, build_type)
 			run_cmd(cmd)
 		else:
 			print(plugin_name + "has the following variants only: " + available_variants)
