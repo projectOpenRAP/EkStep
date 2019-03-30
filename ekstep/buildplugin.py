@@ -11,10 +11,8 @@ def run_cmd(cmd):
         print(error)
         sys.exit(p.returncode)
 
-def init(plugins_root_dir, variant, prod):
+def init(base_dir, repo_name, variant="diksha", prod=False):
 	plugin_name = "ekstep"
-	git_repo = "https://github.com/projectOpenRAP/EkStep.git"
-	# plugin_build_dir = "{}/{}".format(plugins_root_dir, plugin_name)
 	available_variants = [
 		"forwater",
 		"diksha"
@@ -22,11 +20,15 @@ def init(plugins_root_dir, variant, prod):
 
 	build_type = "prod" if prod else "staging"
 
-	if plugins_root_dir is not None:
+	if base_dir is not None:
+		plugins_root_dir = "{}/appServer/plugins".format(base_dir)
+		plugin_repo_dir = "{}/{}".format(plugins_root_dir, repo_name)
+		plugin_dir = "{}/{}".format(plugin_repo_dir, plugin_name)
+
 		if variant in available_variants:
-			cmd = "chmod +x ./init.sh && ./init.sh {} {} {} {} {}".format(plugin_name, git_repo, plugins_root_dir, variant, build_type)
+			cmd = "{}/init.sh {} {} {} {} {}".format(plugin_name, base_dir, repo_name, variant, build_type)
 			run_cmd(cmd)
 		else:
 			print(plugin_name + "has the following variants only: " + available_variants)
 	else:
-		print("Expected the root build directory as the first parameter. Got" + plugins_root_dir)
+		print("Expected the base directory as the first parameter. Got" + base_dir)
