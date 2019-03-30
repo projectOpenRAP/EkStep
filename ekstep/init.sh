@@ -1,27 +1,59 @@
+#!/bin/bash
+
 plugin=$1
-base_dir=$2
+variant=$2
 repo_name=$3
-variant=$4
-type=$5
+base_dir=$4
+build_type=$5 # prod/staging
 
-devmgmt_dir="${base_dir}/devmgmtV2/"
-plugins_root_dir="${base_dir}/appServer/plugins"
-plugin_repo_dir="${plugins_root_dir}/${repo_name}"
-plugin_dir="${plugins_root_dir}/${plugin}"
+available_variants=(forwater diksha)
 
-nginx_dir="${base_dir}/rootfs_overlay/etc/nginx/sites-enabled/"
-syncthing_dir="${base_dir}/rootfs_overlay/root/.config/syncthing/"
+is_variant_valid ()
+{
+	flag=1
 
-cd $plugins_root_dir
+	for i in ${available_variants[*]}
+	do
+		if [ $variant == $i ]
+		then
+			flag=0
+			break
+		fi
+	done
 
-mv $repo_name/$plugin .
-rm -rf $repo_name
+	return $flag
+}
 
-cd $plugin_dir
-cp -r config/$variant/* .
-cp $type.config.js config.js
-rm *.config.js
-rm $devmgmt_dir/config.js
-cp $plugin_dir/config.js $devmgmt_dir/config.js
-cp nginx/opencdn_nginx $nginx_dir
-cp syncthing/config.xml $syncthing_dir
+initialize_plugin () {
+	devmgmt_dir="${base_dir}/devmgmtV2/"
+	plugins_root_dir="${base_dir}/appServer/plugins"
+	plugin_repo_dir="${plugins_root_dir}/${repo_name}"
+	plugin_dir="${plugins_root_dir}/${plugin}"
+
+	nginx_dir="${base_dir}/rootfs_overlay/etc/nginx/sites-enabled/"
+	syncthing_dir="${base_dir}/rootfs_overlay/root/.config/syncthing/"
+
+	cd $plugins_root_dir
+
+	mv $repo_name/$plugin .
+	rm -rf $repo_name
+
+	cd $plugin_dir
+	cp -r config/$variant/* .
+	cp $build_type.config.js config.js
+	rm *.config.js
+	rm $devmgmt_dir/config.js
+	cp $plugin_dir/config.js $devmgmt_dir/config.js
+	cp nginx/opencdn_nginx $nginx_dir
+	cp syncthing/config.xml $syncthing_dir
+}
+
+is_variant_valid
+
+if [ $? -eq 0 ]
+then
+	initialize_plugin
+else
+	echo "Invalid variant, choose one among: "
+	echo ${available_variants[*]}
+fi
