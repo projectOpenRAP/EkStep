@@ -227,7 +227,7 @@ let parseResults = (values) => {
 /*
     Identifies the documents that solve a query and extracts all metadata from them
 */
-let doThoroughSearch = (queryString) => {
+let doThoroughSearch = (queryString, Limit, Offset) => {
     let defer = q.defer();
 
     let searchPromise;
@@ -235,7 +235,9 @@ let doThoroughSearch = (queryString) => {
     if (typeof queryString !== 'object') {
         searchPromise = search({
             indexName: config.bleve_search.db_name,
-            searchString: queryString
+            searchString: queryString,
+            limit : Limit,
+	        offset : Offset
         });
     } else {
         searchPromise = advancedSearch({
@@ -582,7 +584,8 @@ let performSearch = (req, res) => {
     let facets = request.facets;
     let responseStructure = {};
     let secondaryQuery = request.filters.identifier || request.filters.contentType;
-
+    let limit;
+    let offset;
     let query = request.query || secondaryQuery.join(' ');
     if (query.length < 1) {
         query = request.filters.identifier[0];
@@ -591,7 +594,14 @@ let performSearch = (req, res) => {
     loadSkeletonJson('searchResponseSkeleton')
         .then(value => {
             responseStructure = value.data;
-            return doThoroughSearch(query);
+            if("offset" in request) {
+                limit = request.limit;
+                offset = request.offset;
+            } else {
+                limit = 1000;
+                offset = 0;
+            }    
+            return doThoroughSearch(query, limit, offset);
         })
         .then(value => {
             let mappedValues = value.responses.map(val => val.fields);
@@ -614,10 +624,12 @@ let performSearch = (req, res) => {
 let getEcarById = (req, res) => {
     let contentID = req.params.contentID;
     let responseStructure = {};
+    let limit = 1000;
+    let offset = 0;
     loadSkeletonJson('searchIdResponseSkeleton')
         .then(value => {
             responseStructure = value.data;
-            return doThoroughSearch(contentID);
+            return doThoroughSearch(contentID, limit, offset);
         })
         .then(value => {
             responseStructure.result.content = value.responses[0].fields;
