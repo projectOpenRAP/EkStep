@@ -46,6 +46,7 @@ initialize_plugin () {
 	cp $plugin_dir/config.js $devmgmt_dir/config.js
 	cp nginx/opencdn_nginx $nginx_dir
 	cp syncthing/config.xml $syncthing_dir
+	cp config/$variant/$variant.apk ${base_dir}/rootfs_overlay/var/www/html/public/app.apk
 }
 
 is_variant_valid
